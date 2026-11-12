@@ -123,6 +123,21 @@ object CanvasRepository {
     }
 
     /**
+     * Drops every settled answer, hits and misses alike.
+     *
+     * The Spotify session is the one input a lookup depends on that the
+     * cache key cannot see: answers settled while no cookie was set —
+     * Spotify a no-op, its tracks answered by the other sources or missed
+     * outright — would otherwise stand for the rest of the session after
+     * the listener connects it, priority toggle and all. Called from
+     * [AppSettings.setSpotifySpdcToken][com.music.bitchord.data.settings.AppSettings.setSpotifySpdcToken],
+     * alongside [SpotifyToken.invalidate].
+     */
+    fun clearCache() {
+        synchronized(cache) { cache.clear() }
+    }
+
+    /**
      * The canvas for a release, for the album page's header artwork.
      *
      * A separate lookup rather than the first track's: the services hang
