@@ -168,7 +168,10 @@ android {
         // exactly the failure the unsigned fallback above exists to avoid, so
         // the keystore has to be looked for rather than assumed.
         val store = signing.getProperty("storeFile")?.let { rootProject.file(it) }
-        if (store != null && store.exists()) {
+        // An empty file counts as absent too: an unset CI secret leaves a
+        // zero-byte keystore behind — present enough to pass the check
+        // above, corrupt enough to fail signing. Length separates the two.
+        if (store != null && store.exists() && store.length() > 0) {
             create("release") {
                 storeFile = store
                 storePassword = signing.getProperty("storePassword")

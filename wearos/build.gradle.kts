@@ -65,7 +65,9 @@ android {
     signingConfigs {
         // The phone's keystore, found the same way app/build.gradle.kts finds it.
         val store = signing.getProperty("storeFile")?.let { rootProject.file(it) }
-        if (store != null && store.exists()) {
+        // Same empty-file guard as the phone's: an unset CI secret leaves a
+        // zero-byte keystore behind, which exists but cannot be read.
+        if (store != null && store.exists() && store.length() > 0) {
             create("release") {
                 storeFile = store
                 storePassword = signing.getProperty("storePassword")
