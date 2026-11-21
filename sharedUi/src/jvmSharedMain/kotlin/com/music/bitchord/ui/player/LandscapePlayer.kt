@@ -79,9 +79,7 @@ import com.music.bitchord.data.model.Song
  * across: past a certain measure the extra width is further for the eye to
  * travel back rather than more room for the words.
  */
-// Fork: widened from 1100.dp so the 62/38 split below has room to widen the
-// sleeve on large tablets rather than only narrowing the pane beside it.
-private val LANDSCAPE_PLAYER_MAX_WIDTH = 1500.dp
+private val LANDSCAPE_PLAYER_MAX_WIDTH = 1100.dp
 
 /**
  * Below this height the landscape player tightens its right column — smaller
@@ -122,8 +120,7 @@ private val LANDSCAPE_HANDLE_STRIP = 24.dp
  * The player in a landscape window — a tablet, or a phone on its side. See
  * [landscapePlayerAvailable].
  *
- * Two columns — equal width on a compact window, split 62/38 toward the
- * sleeve on a full-height one (fork). The left one is the same in every state: the
+ * Two columns of equal width. The left one is the same in every state: the
  * sleeve, and under it the lyrics / output / queue row with the output name —
  * the controls for *which* of the three the right column shows. The right one
  * is that one thing: the credits and transport, the lyric sheet or the queue.
@@ -167,13 +164,6 @@ internal fun LandscapePlayerLayout(
         ) {
             val compact = maxHeight < LANDSCAPE_COMPACT_HEIGHT
             val gutter = if (compact) LANDSCAPE_GUTTER_COMPACT else PLAYER_GUTTER
-            // Fork: on a full-height window the sleeve column takes 62% of
-            // the row — the stage split of the LastWave landscape player —
-            // so the artwork and its canvas run larger beside a narrower
-            // control rail. A phone-height window keeps the equal split its
-            // tighter rail was tuned around.
-            val sleeveWeight = if (compact) 1f else 62f
-            val paneWeight = if (compact) 1f else 38f
 
             Row(
                 modifier = Modifier
@@ -186,7 +176,7 @@ internal fun LandscapePlayerLayout(
             ) {
                 Column(
                     modifier = Modifier
-                        .weight(sleeveWeight)
+                        .weight(1f)
                         .fillMaxHeight()
                         .padding(horizontal = gutter),
                     horizontalAlignment = Alignment.CenterHorizontally,
@@ -220,7 +210,7 @@ internal fun LandscapePlayerLayout(
                     },
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .weight(paneWeight)
+                        .weight(1f)
                         .fillMaxHeight(),
                     label = "landscapePane",
                 ) { shown ->

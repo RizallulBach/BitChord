@@ -581,9 +581,11 @@ private fun WhileShown(shown: () -> Boolean, content: @Composable () -> Unit) {
  * artwork edge to edge too; with the pane gone the portrait player no
  * longer goes full bleed at these widths, but the switch is still listed
  * there, unchanged, until that is decided on its own.
+ * Fork build: this fork's player honours full bleed in every portrait
+ * window (see the hero-mode condition in [NowPlayingScreen]), so the
+ * switch is worth listing at every width and is never a dead one.
  */
-fun fullBleedArtworkAvailable(windowWidth: Dp): Boolean =
-    playerFillsWindow(windowWidth) || tabletSizedPlayer(windowWidth)
+fun fullBleedArtworkAvailable(windowWidth: Dp): Boolean = true
 
 /**
  * Whether a player given the whole of a window this wide is still narrow enough
@@ -941,11 +943,16 @@ fun NowPlayingScreen(
     // Square video thumbnails: the picture takes the sleeve's own slot, cropped
     // to it, in place of the full-width box at the video's shape.
     val squareVideo = videoMode && VideoThumbnails.square
+    // Fork build: full-bleed artwork (the still cover and the canvas alike)
+    // is honoured in any portrait window, not only phone-width ones, so a
+    // tablet held upright gets the same full-screen player as a phone.
+    // Landscape windows keep the stock staged layout and stay excluded.
+    val portraitWindow = !landscapePlayerAvailable(windowWidth, windowHeight)
     val canvas = rememberCanvasArtwork(song)?.takeUnless { videoMode }?.let {
         // Apple's 3:4 rendition runs under the whole phone screen, the way its
         // own player shows it; the square one stays the fallback.
         val tall = it.portraitUrl
-        if (tall != null && playerFillsWindow(windowWidth)) {
+        if (tall != null && (playerFillsWindow(windowWidth) || portraitWindow)) {
             it.copy(url = tall, fallbackUrl = it.url, portraitUrl = null)
         } else it
     }
@@ -1394,14 +1401,14 @@ fun NowPlayingScreen(
     // clip running the full screen. CanvasArtworkPlayer masks itself on every
     // API level now, and both layers answer to this.
     val spotifyCanvasOnPhone = canvas?.source == CanvasSource.SPOTIFY &&
-        playerFillsWindow(windowWidth)
+        (playerFillsWindow(windowWidth) || portraitWindow)
     // Spotify Canvas is the player background on a phone, independent of the
     // still-art full-bleed preference. Other providers and static artwork keep
     // answering to that preference exactly as before.
     // A music video sits in the card's place at its own 16:9, never full bleed.
     val heroMode = !videoMode && (
         spotifyCanvasOnPhone ||
-            (fullBleedArt && playerFillsWindow(windowWidth))
+            (fullBleedArt && (playerFillsWindow(windowWidth) || portraitWindow))
         )
 
     // Whether there's a still image to blow out — a placeholder tile is a card

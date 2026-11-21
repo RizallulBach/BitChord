@@ -10,7 +10,6 @@ import android.net.NetworkCapabilities
 import androidx.media3.common.Player
 import com.music.bitchord.BuildConfig
 import com.music.bitchord.auth.AuthStore
-import com.music.bitchord.data.canvas.CanvasRepository
 import com.music.bitchord.data.canvas.SpotifyToken
 import com.music.bitchord.data.lyrics.LyricsSource
 import com.music.bitchord.data.sources.SourceKind
@@ -1776,10 +1775,6 @@ object AppSettings {
         spotifySpdcToken.value = value
         prefs.edit().putString(KEY_SPOTIFY_SPDC_TOKEN, value).apply()
         SpotifyToken.invalidate()
-        // Settled canvas answers were reached under the old session — with
-        // none set, Spotify never got asked. They do not stand for the new
-        // one; see CanvasRepository.clearCache.
-        CanvasRepository.clearCache()
     }
 
     fun setLastfmScrobbleEnabled(value: Boolean) {

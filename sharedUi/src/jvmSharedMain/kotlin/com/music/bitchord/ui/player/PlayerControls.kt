@@ -476,10 +476,6 @@ internal fun TransportRow(
     val playSize = if (compact) 58.dp else 74.dp
     val playTouch = if (compact) 76.dp else 92.dp
     val skipSize = if (compact) 44.dp else PLAYER_SKIP_ICON_SIZE
-    // The skips' discs run wider than their glyphs and their old touch box —
-    // the same proportion the play disc (its touch box) keeps around its
-    // glyph — so the three read as one set of glass buttons.
-    val skipDisc = if (compact) 62.dp else 72.dp
     Row(
         modifier = Modifier.fillMaxWidth(),
         // SpaceAround, not SpaceEvenly: the outer margins take half a gap, so
@@ -492,7 +488,6 @@ internal fun TransportRow(
             contentDescription = stringResource(Res.string.widget_previous),
             size = skipSize,
             touchSize = PLAYER_SKIP_TOUCH_SIZE,
-            discSize = skipDisc,
             heightScale = PLAYER_SKIP_HEIGHT_SCALE,
             onClick = onPrevious,
             enabled = previousEnabled,
@@ -502,7 +497,6 @@ internal fun TransportRow(
             // Same footprint as the play/pause target — a smaller box here
             // would shunt everything below it on every load.
             Box(Modifier.size(playTouch), contentAlignment = Alignment.Center) {
-                FrostDisc(playTouch)
                 CircularProgressIndicator(
                     color = Color.White,
                     strokeWidth = 3.dp,
@@ -515,7 +509,6 @@ internal fun TransportRow(
                 contentDescription = stringResource(if (isPlaying) Res.string.pause else Res.string.play),
                 size = playSize,
                 touchSize = playTouch,
-                discSize = playTouch,
                 onClick = onPlayPause,
                 haptic = if (isPlaying) Haptic.Pause else Haptic.Resume,
             )
@@ -525,7 +518,6 @@ internal fun TransportRow(
             contentDescription = stringResource(Res.string.widget_next),
             size = skipSize,
             touchSize = PLAYER_SKIP_TOUCH_SIZE,
-            discSize = skipDisc,
             heightScale = PLAYER_SKIP_HEIGHT_SCALE,
             onClick = onNext,
             enabled = nextEnabled,
@@ -797,33 +789,6 @@ internal fun CircleGlyph(
 }
 
 /**
- * The frosted disc the player's round buttons sit on: [CircleGlyph]'s
- * material — a translucent white disc, its ink dodged under vibrant chrome —
- * shared with the transport and the bottom row so every round button on the
- * player is the same glass. [alpha] fades the disc with its glyph: a
- * disabled skip button's disc dims as its glyph does.
- */
-@Composable
-private fun FrostDisc(size: Dp, alpha: Float = 1f, modifier: Modifier = Modifier) {
-    val chrome = LocalPlayerChrome.current
-    Box(
-        modifier
-            .size(size)
-            .clip(CircleShape)
-            .vibrantChrome(chrome)
-            .background(
-                if (chrome) {
-                    VibrantChromeInk.copy(
-                        alpha = (0.18f * CIRCLE_DISC_DODGE_GAIN * alpha).coerceAtMost(1f),
-                    )
-                } else {
-                    Color.White.copy(alpha = 0.18f * alpha)
-                },
-            ),
-    )
-}
-
-/**
  * Transport / bottom glyphs. The circular clip belongs on the touch target,
  * never on the [Icon] — clipping the icon itself shaves the corners off wide
  * glyphs like fast-forward and the queue list.
@@ -834,8 +799,6 @@ private fun TransportGlyph(
     contentDescription: String,
     size: androidx.compose.ui.unit.Dp,
     touchSize: androidx.compose.ui.unit.Dp = size,
-    /** The frosted disc under the glyph; the layout box grows to fit it. */
-    discSize: androidx.compose.ui.unit.Dp = touchSize,
     onClick: () -> Unit,
     enabled: Boolean = true,
     haptic: Haptic = Haptic.Tap,
@@ -850,7 +813,7 @@ private fun TransportGlyph(
     )
     Box(
         modifier = Modifier
-            .size(if (discSize > touchSize) discSize else touchSize)
+            .size(touchSize)
             .clickable(
                 interactionSource = remember { MutableInteractionSource() },
                 indication = null,
@@ -861,7 +824,6 @@ private fun TransportGlyph(
             },
         contentAlignment = Alignment.Center,
     ) {
-        FrostDisc(discSize, alpha)
         Icon(
             painter = painterResource(icon),
             contentDescription = contentDescription,
@@ -884,9 +846,6 @@ private val PLAYER_SKIP_TOUCH_SIZE = 53.dp
 private const val PLAYER_SKIP_HEIGHT_SCALE = 0.85f
 
 private val BOTTOM_ACTION_SIZE = 44.dp
-
-/** The frosted disc under an unlit bottom glyph, inside its [BOTTOM_ACTION_SIZE] box. */
-private val BOTTOM_DISC_SIZE = 40.dp
 
 /** What the lyrics and queue glyphs are drawn at inside [BOTTOM_ACTION_SIZE]. */
 private val BOTTOM_ICON_SIZE = 26.dp
@@ -1391,11 +1350,6 @@ private fun BottomGlyph(
             if (highlighted) Color.White else chromeWhite(0.75f)
         }
         val glyphChrome = if (vibrant) Modifier.vibrantChrome(chrome) else Modifier.additiveChrome(chrome)
-        // Unlit, the glyph sits on the same frosted disc as the transport and
-        // the round buttons above it. Lit, the cut-out tile above replaces
-        // the disc rather than stacking on it — the tile's SrcOut pass would
-        // punch through a disc drawn in the same layer.
-        if (!highlighted) FrostDisc(BOTTOM_DISC_SIZE)
         if (icon != null) {
             Icon(
                 imageVector = icon,

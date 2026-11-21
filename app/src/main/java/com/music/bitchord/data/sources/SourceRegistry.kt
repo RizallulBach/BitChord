@@ -146,23 +146,17 @@ object SourceRegistry {
 
         val stored = prefs.getString(KEY_SOURCES, null)?.let(::decodeStored) ?: emptyList()
         val jioOptInMigrationDone = prefs.getBoolean(KEY_JIOSAAVN_OPT_IN_V1, false)
-        val monochromeSeedDone = prefs.getBoolean(KEY_MONOCHROME_SEED_V1, false)
-        val after = sourcesForInit(
-            stored,
-            forceJioSaavnOff = !jioOptInMigrationDone,
-            seedMonochrome = !monochromeSeedDone,
-        )
+        val after = sourcesForInit(stored, forceJioSaavnOff = !jioOptInMigrationDone)
 
         // Publish state and the migration marker in one preferences edit. If a
         // process dies after recording the marker but before recording the
         // disabled source, the next launch would otherwise believe the forced
         // opt-out had already happened and silently restore the old on state.
         publish(after, persist = false)
-        if (after != stored || !jioOptInMigrationDone || !monochromeSeedDone) {
+        if (after != stored || !jioOptInMigrationDone) {
             prefs.edit()
                 .putString(KEY_SOURCES, json.encodeToString(ListSerializer(SourceConfig.serializer()), after))
                 .putBoolean(KEY_JIOSAAVN_OPT_IN_V1, true)
-                .putBoolean(KEY_MONOCHROME_SEED_V1, true)
                 .apply()
         }
     }
@@ -174,42 +168,17 @@ object SourceRegistry {
      * this version, including upgrades whose stored config currently says on.
      * Once the marker is written, a user who deliberately enables JioSaavn is
      * left enabled on subsequent launches.
-     *
-     * [seedMonochrome] is this fork's one addition: true exactly once, it
-     * seeds the owner's own Monochrome instance as an ordinary addon. The
-     * seeded config is a normal addon in every way — removable, reorderable,
-     * disable-able — and the one-shot marker makes removing it final: it is
-     * never seeded back. An install that already points at the same server,
-     * added by hand, is left alone rather than duplicated.
      */
     internal fun sourcesForInit(
         stored: List<SourceConfig>,
         forceJioSaavnOff: Boolean,
-        seedMonochrome: Boolean = false,
     ): List<SourceConfig> {
         // Seeded rather than persisted-on-first-write, so a build adding a new
         // built-in kind picks it up for existing installs too. SourceConfig's
         // default is the policy: JioSaavn off, YouTube on.
-        val builtIns = stored + BUILT_IN_KINDS
+        val seeded = stored + BUILT_IN_KINDS
             .filter { kind -> stored.none { it.kind == kind } }
             .map { SourceConfig(kind = it) }
-
-        val seeded = if (
-            seedMonochrome &&
-            builtIns.none { it.kind == SourceKind.ADDON && canonicalUrl(it.baseUrl) == canonicalUrl(MONOCHROME_URL) }
-        ) {
-            val addon = SourceConfig(
-                kind = SourceKind.ADDON,
-                baseUrl = MONOCHROME_URL,
-                label = MONOCHROME_LABEL,
-            )
-            // Addons sit above the built-ins in the stored order, which is
-            // the order the sources screen shows and the walk asks in.
-            val insertAt = builtIns.indexOfFirst { it.kind != SourceKind.ADDON }
-            if (insertAt < 0) builtIns + addon else builtIns.toMutableList().apply { add(insertAt, addon) }
-        } else {
-            builtIns
-        }
 
         // The retired built-in module is removed, while a custom module entered
         // by the user is preserved.
@@ -667,11 +636,6 @@ object SourceRegistry {
     private const val KEY_SOURCES = "sources"
     /** One-shot migration: existing users must explicitly opt in again. */
     private const val KEY_JIOSAAVN_OPT_IN_V1 = "jiosaavn_opt_in_v1"
-    /** Fork: the owner's own Monochrome instance, seeded once as a built-in addon. */
-    private const val MONOCHROME_URL = "https://bitchord-monochrome-addon-rckw.onrender.com"
-    private const val MONOCHROME_LABEL = "Monochrome Lossless Provider"
-    /** One-shot: the fork's Monochrome seed has been offered to this install. */
-    private const val KEY_MONOCHROME_SEED_V1 = "monochrome_seed_v1"
     private const val PREFIX = "src:"
     private const val SEPARATOR = "::"
 }
